@@ -176,7 +176,7 @@ public class DownloadAdapter extends BaseAdapter {
                     if (!holder.getRequest().equals(request)) {
                         return;
                     }
-                    setViewHolder(holder, request);
+                    setViewHolder(holder, holder.getRequest());
                 }
             });
         }
@@ -196,7 +196,7 @@ public class DownloadAdapter extends BaseAdapter {
                     }
                     holder.completeSize.setText(setCompleteSize(request.getModel().getCompleteSize()));
                     holder.progress.setProgress((int) (request.getModel().getCompleteSize() / (request.getModel().getFileSize() * 1.0) * 100));
-                    setViewHolder(holder, request);
+                    setViewHolder(holder, holder.getRequest());
                 }
             });
         }
@@ -213,7 +213,7 @@ public class DownloadAdapter extends BaseAdapter {
                     if (!holder.getRequest().equals(request)) {
                         return;
                     }
-                    setViewHolder(holder, request);
+                    setViewHolder(holder, holder.getRequest());
                 }
             });
         }
@@ -230,7 +230,7 @@ public class DownloadAdapter extends BaseAdapter {
                     if (!holder.getRequest().equals(request)) {
                         return;
                     }
-                    setViewHolder(holder, request);
+                    setViewHolder(holder, holder.getRequest());
                 }
             });
         }
