@@ -23,5 +23,5 @@ public class Build {
         this.isStartNow = isStartNow;
     }
 
-    public static Build defaultBuild = new Build(false,2,false);
+    public static Build defaultBuild = new Build(false,5,false);
 }

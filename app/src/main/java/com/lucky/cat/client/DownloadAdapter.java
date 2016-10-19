@@ -12,14 +12,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-
 import com.lucky.cat.updown.download.DownloadListener;
 import com.lucky.cat.updown.download.DownloadManage;
 import com.lucky.cat.updown.download.DownloadRequest;
-import com.lucky.cat.updown.sql.DownloadModel;
 
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Created by jisx on 2016/10/18.
@@ -31,10 +28,11 @@ public class DownloadAdapter extends BaseAdapter {
 
     private List<DownloadRequest> list;
 
-    DownloadAdapter(Context context,List<DownloadRequest> list){
+    DownloadAdapter(Context context, List<DownloadRequest> list) {
         this.context = context;
         this.list = list;
     }
+
     /**
      * How many items are in the data set represented by this Adapter.
      *
@@ -79,62 +77,65 @@ public class DownloadAdapter extends BaseAdapter {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        DownloadRequest model = list.get(position);
-        holder.fileName.setText(model.getModel().getFileName());
+        DownloadRequest request = list.get(position);
+        holder.fileName.setText(request.getModel().getFileName());
 
 
-        holder.completeSize.setText(setCompleteSize(model.getModel().getCompleteSize()));
-        holder.progress.setProgress((int) (model.getModel().getCompleteSize() / (model.getModel().getFileSize() * 1.0) * 100));
+        holder.completeSize.setText(setCompleteSize(request.getModel().getCompleteSize()));
+        holder.progress.setProgress((int) (request.getModel().getCompleteSize() / (request.getModel().getFileSize() * 1.0) * 100));
         holder.checkbox.setVisibility(View.INVISIBLE);
+        holder.setRequest(request);
+        DownloadManage.INSTANCE.addListener(request, new DownloadListen(holder, request));
 
-        DownloadManage.INSTANCE.addListener(model,new DownloadListen(holder,model.getModel()));
+        setViewHolder(holder, request);
 
-        switch (model.downloadType){
+        return convertView;
+    }
+
+    private void setViewHolder(ViewHolder holder, final DownloadRequest request) {
+        switch (request.downloadType) {
             case PREPARE:
                 holder.statusIcon.setImageResource(0);
                 holder.operation.setImageResource(R.drawable.icon_download);
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(list.get(position).getModel());
+                        DownloadManage.INSTANCE.startTask(request.getModel());
                     }
                 });
-            break;
+                break;
             case START:
                 holder.statusIcon.setImageResource(R.drawable.icon_wait);
                 holder.operation.setImageResource(R.drawable.icon_stop);
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(list.get(position).getModel());
+                        DownloadManage.INSTANCE.startTask(request.getModel());
                     }
                 });
-            break;
+                break;
             case LOADING:
                 holder.statusIcon.setImageResource(R.drawable.icon_downloading);
                 holder.operation.setImageResource(R.drawable.icon_stop);
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.pauseTask(list.get(position).getModel());
+                        DownloadManage.INSTANCE.pauseTask(request.getModel());
                     }
                 });
-            break;
+                break;
             case STOP:
                 holder.statusIcon.setImageResource(R.drawable.icon_status_stop);
                 holder.operation.setImageResource(R.drawable.icon_start);
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(list.get(position).getModel());
+                        DownloadManage.INSTANCE.startTask(request.getModel());
                     }
                 });
-            break;
+                break;
         }
-
-        return convertView;
     }
-
 
 
     private String setCompleteSize(long bytesRead) {
@@ -147,70 +148,104 @@ public class DownloadAdapter extends BaseAdapter {
         }
     }
 
-    class DownloadListen implements DownloadListener{
+    class DownloadListen implements DownloadListener {
 
-        DownloadModel model;
+        DownloadRequest downloadRequest;
 
         ViewHolder holder;
 
-        DownloadListen(ViewHolder holder,DownloadModel model){
-            this.model = model;
+        DownloadListen(ViewHolder holder, DownloadRequest request) {
+            this.downloadRequest = request;
             this.holder = holder;
         }
 
         @Override
-        public void onPrepare(DownloadModel downloadModel) {
+        public void onPrepare(DownloadRequest request) {
             handler.sendEmptyMessage(0);
         }
 
         @Override
-        public void onStart(DownloadModel downloadModel) {
-            handler.sendEmptyMessage(0);
-        }
-
-        @Override
-        public void onLoading(final DownloadModel downloadModel) {
-            if(model.equals(downloadModel)){
-                ((AppCompatActivity)context).runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        holder.completeSize.setText(setCompleteSize(downloadModel.getCompleteSize()));
-                        holder.progress.setProgress((int) (downloadModel.getCompleteSize() / (downloadModel.getFileSize() * 1.0) * 100));
-                        holder.statusIcon.setImageResource(R.drawable.icon_downloading);
-                        holder.operation.setImageResource(R.drawable.icon_stop);
-                        holder.operation.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                DownloadManage.INSTANCE.pauseTask(model);
-                            }
-                        });
-                    }
-                });
-
+        public void onStart(final DownloadRequest request) {
+            if (!holder.getRequest().equals(request)) {
+                return;
             }
+
+            ((AppCompatActivity) context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!holder.getRequest().equals(request)) {
+                        return;
+                    }
+                    setViewHolder(holder, request);
+                }
+            });
         }
 
         @Override
-        public void onStop(DownloadModel downloadModel) {
-            handler.sendEmptyMessage(0);
+        public void onLoading(final DownloadRequest request) {
+
+            if (!holder.getRequest().equals(request)) {
+                return;
+            }
+
+            ((AppCompatActivity) context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!holder.getRequest().equals(request)) {
+                        return;
+                    }
+                    holder.completeSize.setText(setCompleteSize(request.getModel().getCompleteSize()));
+                    holder.progress.setProgress((int) (request.getModel().getCompleteSize() / (request.getModel().getFileSize() * 1.0) * 100));
+                    setViewHolder(holder, request);
+                }
+            });
         }
 
         @Override
-        public void onCancel(DownloadModel downloadModel) {
-            handler.sendEmptyMessage(0);
+        public void onStop(final DownloadRequest request) {
+            if (!holder.getRequest().equals(request)) {
+                return;
+            }
+
+            ((AppCompatActivity) context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!holder.getRequest().equals(request)) {
+                        return;
+                    }
+                    setViewHolder(holder, request);
+                }
+            });
         }
 
         @Override
-        public void onComplete(DownloadModel downloadModel) {
-            handler.sendEmptyMessage(0);
+        public void onCancel(final DownloadRequest request) {
+            if (!holder.getRequest().equals(request)) {
+                return;
+            }
+
+            ((AppCompatActivity) context).runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (!holder.getRequest().equals(request)) {
+                        return;
+                    }
+                    setViewHolder(holder, request);
+                }
+            });
+        }
+
+        @Override
+        public void onComplete(final DownloadRequest request) {
+           handler.sendEmptyMessage(0);
         }
     }
 
-    Handler handler = new Handler(){
+    Handler handler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
-            switch (msg.what){
+            switch (msg.what) {
                 case 0:
                     notifyDataSetChanged();
                     break;
@@ -219,7 +254,7 @@ public class DownloadAdapter extends BaseAdapter {
         }
     };
 
-    class ViewHolder{
+    class ViewHolder {
 
         ImageView statusIcon;
 
@@ -235,6 +270,8 @@ public class DownloadAdapter extends BaseAdapter {
 
         CheckBox checkbox;
 
+        DownloadRequest request;
+
         ViewHolder(View view) {
             statusIcon = (ImageView) view.findViewById(R.id.status_icon);
             fileName = (TextView) view.findViewById(R.id.file_name);
@@ -245,6 +282,14 @@ public class DownloadAdapter extends BaseAdapter {
             checkbox = (CheckBox) view.findViewById(R.id.checkbox);
         }
 
+
+        public DownloadRequest getRequest() {
+            return request;
+        }
+
+        public void setRequest(DownloadRequest request) {
+            this.request = request;
+        }
     }
 
 }

@@ -50,7 +50,7 @@ public class OkHttpRequest extends DownloadRequest {
                 .build();
 
         call = client.newCall(request);
-        listener.onPrepare(model);
+        listener.onPrepare(this);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class OkHttpRequest extends DownloadRequest {
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
-                listener.onStop(model);
+                listener.onStop(OkHttpRequest.this);
             }
 
             @Override
@@ -71,12 +71,12 @@ public class OkHttpRequest extends DownloadRequest {
                     saveToFile(response.body().byteStream());
                 } catch (Throwable e) {
                     e.printStackTrace();
-                    listener.onStop(model);
+                    listener.onStop(OkHttpRequest.this);
                 }
             }
         });
 
-        listener.onStart(model);
+        listener.onStart(this);
     }
 
     private void saveToFile(InputStream inputStream) throws Throwable {
@@ -99,11 +99,11 @@ public class OkHttpRequest extends DownloadRequest {
             file.write(buffer, 0, len);
             if (length < model.getFileSize()) {
                 model.setCompleteSize(length);
-                listener.onLoading(model);
+                listener.onLoading(this);
             }
 
         }
-        listener.onComplete(model);
+        listener.onComplete(this);
         bis.close();
         inputStream.close();
         file.close();
@@ -113,7 +113,7 @@ public class OkHttpRequest extends DownloadRequest {
     public void cancel() {
         if (call.isExecuted()) {
             call.cancel();
-            listener.onCancel(model);
+            listener.onCancel(this);
         }
     }
 

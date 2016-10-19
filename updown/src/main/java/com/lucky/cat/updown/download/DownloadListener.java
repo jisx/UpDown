@@ -7,15 +7,15 @@ import com.lucky.cat.updown.sql.DownloadModel;
  */
 public interface DownloadListener {
 
-    public void onPrepare(DownloadModel downloadModel);
+    public void onPrepare(DownloadRequest request);
 
-    public void onStart(DownloadModel downloadModel);
+    public void onStart(DownloadRequest request);
 
-    public void onLoading(DownloadModel downloadModel);
+    public void onLoading(DownloadRequest request);
 
-    public void onStop(DownloadModel downloadModel);
+    public void onStop(DownloadRequest request);
 
-    public void onCancel(DownloadModel downloadModel);
+    public void onCancel(DownloadRequest request);
 
-    public void onComplete(DownloadModel downloadModel);
+    public void onComplete(DownloadRequest request);
 }

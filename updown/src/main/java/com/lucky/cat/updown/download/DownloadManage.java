@@ -33,7 +33,7 @@ public enum DownloadManage implements DownloadListener {
         // 存放model 和 request 键值对，便于检索
         public HashMap<DownloadModel, DownloadRequest> relationMap;
         //存放监听的
-        public HashMap<DownloadModel, DownloadListener> listenerMap;
+        public HashMap<DownloadRequest, DownloadListener> listenerMap;
 
         @Override
         public void init(Context context) {
@@ -89,6 +89,7 @@ public enum DownloadManage implements DownloadListener {
                     for (DownloadRequest request : taskList) {
                         if (request.downloadType == DownloadType.PREPARE) {
                             startTask(request.getModel());
+                            break;
                         }
                     }
                 }
@@ -122,29 +123,25 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void pauseTask(DownloadModel model) {
-            cancelTask(model);
-        }
-
-        @Override
-        public void removeTask(DownloadModel model) {
-            cancelTask(model);
-
             DownloadRequest request = relationMap.get(model);
-
-            if (request != null && taskList.contains(request)) {
-                taskList.remove(request);
-                relationMap.remove(model);
+            if (loadingList.contains(request)) {
+                loadingList.remove(request);
+                request.cancel();
             }
 
             request = null;
         }
 
         @Override
-        public void cancelTask(DownloadModel model) {
+        public void removeTask(DownloadModel model) {
+
+            pauseTask(model);
+
             DownloadRequest request = relationMap.get(model);
-            if (loadingList.contains(request)) {
-                request.cancel();
-                loadingList.remove(request);
+
+            if (request != null && taskList.contains(request)) {
+                taskList.remove(request);
+                relationMap.remove(model);
             }
 
             request = null;
@@ -166,57 +163,57 @@ public enum DownloadManage implements DownloadListener {
         }
 
         @Override
-        public void onPrepare(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.PREPARE;
+        public void onPrepare(DownloadRequest request) {
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.PREPARE;
             }
-            dao.insertOrReplace(downloadModel);
+            dao.insertOrReplace(request.getModel());
 
 
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onPrepare(downloadModel);
-            }
-        }
-
-        @Override
-        public void onStart(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.START;
-            }
-            dao.insertOrReplace(downloadModel);
-
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onStart(downloadModel);
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onPrepare(request);
             }
         }
 
         @Override
-        public void onLoading(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.LOADING;
+        public void onStart(DownloadRequest request) {
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.START;
+            }
+            dao.insertOrReplace(request.getModel());
+
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onStart(request);
+            }
+        }
+
+        @Override
+        public void onLoading(DownloadRequest request) {
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.LOADING;
             }
             //
-            dao.insertOrReplace(downloadModel);
+            dao.insertOrReplace(request.getModel());
 
 
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onLoading(downloadModel);
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onLoading(request);
             }
         }
 
         @Override
-        public void onStop(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.STOP;
-                DownloadRequest request = relationMap.get(downloadModel);
+        public void onStop(DownloadRequest request) {
+
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.STOP;
                 if (loadingList.contains(request)) {
                     loadingList.remove(request);
                 }
             }
-            dao.insertOrReplace(downloadModel);
+            dao.insertOrReplace(request.getModel());
 
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onStop(downloadModel);
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onStop(request);
             }
 
             //开始下个任务
@@ -224,30 +221,28 @@ public enum DownloadManage implements DownloadListener {
         }
 
         @Override
-        public void onCancel(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.CANCEL;
+        public void onCancel(DownloadRequest request) {
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.CANCEL;
             }
-            dao.insertOrReplace(downloadModel);
+            dao.insertOrReplace(request.getModel());
 
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onCancel(downloadModel);
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onCancel(request);
             }
-            //开始下个任务
-            startTask();
         }
 
         @Override
-        public void onComplete(DownloadModel downloadModel) {
-            if (relationMap.containsKey(downloadModel)) {
-                relationMap.get(downloadModel).downloadType = DownloadType.COMPLETE;
+        public void onComplete(DownloadRequest request) {
+            if (taskList.contains(request)) {
+                request.downloadType = DownloadType.COMPLETE;
             }
-            dao.insertOrReplace(downloadModel);
+            dao.insertOrReplace(request.getModel());
             //删除任务
-            removeTask(downloadModel);
+            removeTask(request.getModel());
 
-            if (listenerMap.containsKey(downloadModel)) {
-                listenerMap.get(downloadModel).onComplete(downloadModel);
+            if (listenerMap.containsKey(request)) {
+                listenerMap.get(request).onComplete(request);
             }
             //开始下个任务
             startTask();
@@ -255,13 +250,13 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void addListener(DownloadRequest request, DownloadListener listener) {
-            listenerMap.put(request.getModel(), listener);
+            listenerMap.put(request, listener);
         }
 
         @Override
         public void removeListener(DownloadRequest request, DownloadListener listener) {
-            if (listenerMap.containsKey(request.getModel()))
-                listenerMap.remove(request.getModel());
+            if (listenerMap.containsKey(request))
+                listenerMap.remove(request);
         }
 
     };
@@ -279,8 +274,6 @@ public enum DownloadManage implements DownloadListener {
     public abstract void pauseTask(DownloadModel downloadModel);
 
     public abstract void removeTask(DownloadModel downloadModel);
-
-    public abstract void cancelTask(DownloadModel downloadModel);
 
     public abstract List<DownloadRequest> getList();
 
