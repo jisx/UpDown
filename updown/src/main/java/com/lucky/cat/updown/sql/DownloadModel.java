@@ -6,39 +6,31 @@ package com.lucky.cat.updown.sql;
  */
 public class DownloadModel {
 
-    private Long id;
     private String downLoadUrl;
     /** Not-null value. */
     private String savePath;
+    /** Not-null value. */
     private String fileName;
-    private Long fileSize;
+    private long fileSize;
+    private Long completeSize;
     private String MD5;
     private java.util.Date createTime;
 
     public DownloadModel() {
     }
 
-    public DownloadModel(Long id, String downLoadUrl) {
-        this.id = id;
+    public DownloadModel(String downLoadUrl) {
         this.downLoadUrl = downLoadUrl;
     }
 
-    public DownloadModel(Long id, String downLoadUrl, String savePath, String fileName, Long fileSize, String MD5, java.util.Date createTime) {
-        this.id = id;
+    public DownloadModel(String downLoadUrl, String savePath, String fileName, long fileSize, Long completeSize, String MD5, java.util.Date createTime) {
         this.downLoadUrl = downLoadUrl;
         this.savePath = savePath;
         this.fileName = fileName;
         this.fileSize = fileSize;
+        this.completeSize = completeSize;
         this.MD5 = MD5;
         this.createTime = createTime;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getDownLoadUrl() {
@@ -59,20 +51,30 @@ public class DownloadModel {
         this.savePath = savePath;
     }
 
+    /** Not-null value. */
     public String getFileName() {
         return fileName;
     }
 
+    /** Not-null value; ensure this value is available before it is saved to the database. */
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
 
-    public Long getFileSize() {
+    public long getFileSize() {
         return fileSize;
     }
 
-    public void setFileSize(Long fileSize) {
+    public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
+    }
+
+    public Long getCompleteSize() {
+        return completeSize;
+    }
+
+    public void setCompleteSize(Long completeSize) {
+        this.completeSize = completeSize;
     }
 
     public String getMD5() {
@@ -91,19 +93,4 @@ public class DownloadModel {
         this.createTime = createTime;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        DownloadModel that = (DownloadModel) o;
-
-        return downLoadUrl != null ? downLoadUrl.equals(that.downLoadUrl) : that.downLoadUrl == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        return downLoadUrl != null ? downLoadUrl.hashCode() : 0;
-    }
 }

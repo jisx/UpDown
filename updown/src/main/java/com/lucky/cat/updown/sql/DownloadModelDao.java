@@ -14,7 +14,7 @@ import com.lucky.cat.updown.sql.DownloadModel;
 /** 
  * DAO for table "DOWNLOAD_MODEL".
 */
-public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
+public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
 
     public static final String TABLENAME = "DOWNLOAD_MODEL";
 
@@ -23,11 +23,11 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
      * Can be used for QueryBuilder and for referencing column names.
     */
     public static class Properties {
-        public final static Property Id = new Property(0, Long.class, "id", true, "_id");
-        public final static Property DownLoadUrl = new Property(1, String.class, "downLoadUrl", true, "DOWN_LOAD_URL");
-        public final static Property SavePath = new Property(2, String.class, "savePath", false, "SAVE_PATH");
-        public final static Property FileName = new Property(3, String.class, "fileName", false, "FILE_NAME");
-        public final static Property FileSize = new Property(4, Long.class, "fileSize", false, "FILE_SIZE");
+        public final static Property DownLoadUrl = new Property(0, String.class, "downLoadUrl", true, "DOWN_LOAD_URL");
+        public final static Property SavePath = new Property(1, String.class, "savePath", false, "SAVE_PATH");
+        public final static Property FileName = new Property(2, String.class, "fileName", false, "FILE_NAME");
+        public final static Property FileSize = new Property(3, long.class, "fileSize", false, "FILE_SIZE");
+        public final static Property CompleteSize = new Property(4, Long.class, "completeSize", false, "COMPLETE_SIZE");
         public final static Property MD5 = new Property(5, String.class, "MD5", false, "MD5");
         public final static Property CreateTime = new Property(6, java.util.Date.class, "createTime", false, "CREATE_TIME");
     };
@@ -45,11 +45,11 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
     public static void createTable(SQLiteDatabase db, boolean ifNotExists) {
         String constraint = ifNotExists? "IF NOT EXISTS ": "";
         db.execSQL("CREATE TABLE " + constraint + "\"DOWNLOAD_MODEL\" (" + //
-                "\"_id\" INTEGER PRIMARY KEY ," + // 0: id
-                "\"DOWN_LOAD_URL\" TEXT PRIMARY KEY NOT NULL ," + // 1: downLoadUrl
-                "\"SAVE_PATH\" TEXT NOT NULL ," + // 2: savePath
-                "\"FILE_NAME\" TEXT," + // 3: fileName
-                "\"FILE_SIZE\" INTEGER," + // 4: fileSize
+                "\"DOWN_LOAD_URL\" TEXT PRIMARY KEY NOT NULL ," + // 0: downLoadUrl
+                "\"SAVE_PATH\" TEXT NOT NULL ," + // 1: savePath
+                "\"FILE_NAME\" TEXT NOT NULL ," + // 2: fileName
+                "\"FILE_SIZE\" INTEGER NOT NULL ," + // 3: fileSize
+                "\"COMPLETE_SIZE\" INTEGER," + // 4: completeSize
                 "\"MD5\" TEXT," + // 5: MD5
                 "\"CREATE_TIME\" INTEGER);"); // 6: createTime
     }
@@ -65,25 +65,17 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
     protected void bindValues(SQLiteStatement stmt, DownloadModel entity) {
         stmt.clearBindings();
  
-        Long id = entity.getId();
-        if (id != null) {
-            stmt.bindLong(1, id);
-        }
- 
         String downLoadUrl = entity.getDownLoadUrl();
         if (downLoadUrl != null) {
-            stmt.bindString(2, downLoadUrl);
+            stmt.bindString(1, downLoadUrl);
         }
-        stmt.bindString(3, entity.getSavePath());
+        stmt.bindString(2, entity.getSavePath());
+        stmt.bindString(3, entity.getFileName());
+        stmt.bindLong(4, entity.getFileSize());
  
-        String fileName = entity.getFileName();
-        if (fileName != null) {
-            stmt.bindString(4, fileName);
-        }
- 
-        Long fileSize = entity.getFileSize();
-        if (fileSize != null) {
-            stmt.bindLong(5, fileSize);
+        Long completeSize = entity.getCompleteSize();
+        if (completeSize != null) {
+            stmt.bindLong(5, completeSize);
         }
  
         String MD5 = entity.getMD5();
@@ -99,19 +91,19 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
 
     /** @inheritdoc */
     @Override
-    public Void readKey(Cursor cursor, int offset) {
-        return null;
+    public String readKey(Cursor cursor, int offset) {
+        return cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0);
     }    
 
     /** @inheritdoc */
     @Override
     public DownloadModel readEntity(Cursor cursor, int offset) {
         DownloadModel entity = new DownloadModel( //
-            cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0), // id
-            cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1), // downLoadUrl
-            cursor.getString(offset + 2), // savePath
-            cursor.isNull(offset + 3) ? null : cursor.getString(offset + 3), // fileName
-            cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4), // fileSize
+            cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0), // downLoadUrl
+            cursor.getString(offset + 1), // savePath
+            cursor.getString(offset + 2), // fileName
+            cursor.getLong(offset + 3), // fileSize
+            cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4), // completeSize
             cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5), // MD5
             cursor.isNull(offset + 6) ? null : new java.util.Date(cursor.getLong(offset + 6)) // createTime
         );
@@ -121,26 +113,29 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, Void> {
     /** @inheritdoc */
     @Override
     public void readEntity(Cursor cursor, DownloadModel entity, int offset) {
-        entity.setId(cursor.isNull(offset + 0) ? null : cursor.getLong(offset + 0));
-        entity.setDownLoadUrl(cursor.isNull(offset + 1) ? null : cursor.getString(offset + 1));
-        entity.setSavePath(cursor.getString(offset + 2));
-        entity.setFileName(cursor.isNull(offset + 3) ? null : cursor.getString(offset + 3));
-        entity.setFileSize(cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4));
+        entity.setDownLoadUrl(cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0));
+        entity.setSavePath(cursor.getString(offset + 1));
+        entity.setFileName(cursor.getString(offset + 2));
+        entity.setFileSize(cursor.getLong(offset + 3));
+        entity.setCompleteSize(cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4));
         entity.setMD5(cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5));
         entity.setCreateTime(cursor.isNull(offset + 6) ? null : new java.util.Date(cursor.getLong(offset + 6)));
      }
     
     /** @inheritdoc */
     @Override
-    protected Void updateKeyAfterInsert(DownloadModel entity, long rowId) {
-        // Unsupported or missing PK type
-        return null;
+    protected String updateKeyAfterInsert(DownloadModel entity, long rowId) {
+        return entity.getDownLoadUrl();
     }
     
     /** @inheritdoc */
     @Override
-    public Void getKey(DownloadModel entity) {
-        return null;
+    public String getKey(DownloadModel entity) {
+        if(entity != null) {
+            return entity.getDownLoadUrl();
+        } else {
+            return null;
+        }
     }
 
     /** @inheritdoc */

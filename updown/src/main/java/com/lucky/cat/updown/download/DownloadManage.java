@@ -2,7 +2,6 @@ package com.lucky.cat.updown.download;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.lucky.cat.updown.sql.DaoMaster;
 import com.lucky.cat.updown.sql.DaoSession;
@@ -10,12 +9,13 @@ import com.lucky.cat.updown.sql.DownloadModel;
 import com.lucky.cat.updown.sql.DownloadModelDao;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
  * Created by jisx on 2016/10/14.
  */
-public enum DownloadManage {
+public enum DownloadManage implements DownloadListener {
 
     INSTANCE {
 
@@ -27,9 +27,13 @@ public enum DownloadManage {
 
         public Build build;
         //保存所有的下载任务列表
-        public List<TaskModel> taskList;
+        public List<DownloadRequest> taskList;
         //正在下载的任务列表
-        public List<TaskModel> loadingList;
+        public List<DownloadRequest> loadingList;
+        // 存放model 和 request 键值对，便于检索
+        public HashMap<DownloadModel, DownloadRequest> relationMap;
+        //存放监听的
+        List<DownloadListener> listenerList;
 
         @Override
         public void init(Context context) {
@@ -48,22 +52,10 @@ public enum DownloadManage {
             this.daoSession = new DaoMaster(helper.getWritableDatabase()).newSession();
             this.dao = daoSession.getDownloadModelDao();
 
-            taskList = new ArrayList<TaskModel>();
-            loadingList = new ArrayList<TaskModel>();
-
-            //从以前数据库中拿出数据，存入下载队列
-            if (!dao.loadAll().isEmpty()) {
-                for (DownloadModel model : dao.loadAll()) {
-                    addTask(model);
-                }
-            }
-
-            //填充LoadingList
-            if(taskList.size() > this.build.numbersTask){
-                loadingList.addAll(taskList.subList(0,this.build.numbersTask - 1));
-            }else{
-                loadingList.addAll(taskList);
-            }
+            taskList = new ArrayList<>();
+            loadingList = new ArrayList<>();
+            relationMap = new HashMap<>();
+            listenerList = new ArrayList<>();
 
         }
 
@@ -74,8 +66,8 @@ public enum DownloadManage {
             }
 
             if (!exist(model)) {
-                TaskModel taskModel = new TaskModel();
-                taskList.add(taskModel);
+                relationMap.put(model, new OkHttpRequest(model, this));
+                taskList.add(relationMap.get(model));
             }
 
             //添加一条任务就开始执行下载
@@ -86,86 +78,195 @@ public enum DownloadManage {
         }
 
         private boolean exist(DownloadModel model) {
-            for (TaskModel taskModel : taskList) {
-                if (taskModel.getModel().equals(model)) {
-                    return true;
-                }
-            }
-            return false;
+            return relationMap.containsKey(model);
         }
 
         @Override
         public void startTask() {
 
-            if(loadingList.isEmpty()){
-                if(!taskList.isEmpty()){
-                    loadingList.add(taskList.get(0));
+            if (loadingList.isEmpty()) {
+                if (!taskList.isEmpty()) {
+                    for (DownloadRequest request : taskList) {
+                        if (request.downloadType == DownloadType.PREPARE) {
+                            startTask(request.getModel());
+                        }
+                    }
                 }
             }
 
-            loadingList.get(0).getRequest().start();
         }
+
         @Override
-        public void startTask(TaskModel  taskModel) {
-           if(loadingList.contains(taskModel)){
-               Log.d(TAG,"The download tasks started");
-               return;
-           }
-            if(taskList.contains(taskModel)){
-                //判断是否达到最大下载条数
-                if(loadingList.size() < build.numbersTask){
-                    loadingList.add(taskModel);
-                    taskModel.getRequest().start();
-                }else{
-                    Log.d(TAG,"最多" + build.numbersTask + "条下载任务");
+        public void startTask(DownloadModel model) {
+            DownloadRequest request = relationMap.get(model);
+            if (request != null) {
+                if (loadingList.contains(request)) {
+                    Log.d(TAG, "该任务已经开始了");
+                    return;
+                } else {
+                    if (loadingList.size() < build.numbersTask) {
+                        loadingList.add(request);
+                        request.start();
+                    } else {
+                        Log.d(TAG, "最多" + build.numbersTask + "条下载任务");
+                    }
+
                 }
-            }else{
-                Log.d(TAG,"There is no download task");
+
+            } else {
+                Log.d(TAG, "任务不存在");
             }
 
+            request = null;
         }
 
         @Override
-        public void pauseTask(TaskModel  taskModel) {
-            if(loadingList.contains(taskModel)){
-                taskModel.getRequest().cancel();
-                loadingList.remove(taskModel);
-            }else{
-                Log.d(TAG,"The download task is over");
-            }
+        public void pauseTask(DownloadModel model) {
+            cancelTask(model);
         }
 
         @Override
-        public void removeTask(TaskModel  taskModel) {
+        public void removeTask(DownloadModel model) {
             //先取消任务
-            cancelTask(taskModel);
+            cancelTask(model);
 
-            if(taskList.contains(taskModel)){
-                taskList.remove(taskModel);
-            }else{
-                Log.d(TAG," The download task has been removed");
+            DownloadRequest request = relationMap.get(model);
+
+            if (taskList.contains(request)) {
+                taskList.remove(request);
+                relationMap.remove(model);
             }
+
+            request = null;
         }
 
         @Override
-        public void cancelTask(TaskModel  taskModel) {
-            if(loadingList.contains(taskModel)){
-                taskModel.getRequest().cancel();
-                loadingList.remove(taskModel);
-            }else{
-                Log.d(TAG," The download task has been canceled");
+        public void cancelTask(DownloadModel model) {
+            DownloadRequest request = relationMap.get(model);
+            if (loadingList.contains(request)) {
+                request.cancel();
+                loadingList.remove(request);
             }
+
+            request = null;
         }
 
         @Override
-        public List<TaskModel> getList() {
+        public List<DownloadRequest> getList() {
+
             return taskList;
         }
 
         @Override
-        public List<TaskModel> getLoadingList() {
-            return loadingList;
+        public List<DownloadModel> getLoadingList() {
+            List<DownloadModel> list = new ArrayList<>();
+            for (DownloadRequest request : loadingList) {
+                list.add(request.getModel());
+            }
+            return list;
         }
+
+        @Override
+        public void onPrepare(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.PREPARE;
+            }
+            dao.insertOrReplace(downloadModel);
+
+
+            for (DownloadListener listener : listenerList) {
+                listener.onPrepare(downloadModel);
+            }
+        }
+
+        @Override
+        public void onStart(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.START;
+            }
+            dao.insertOrReplace(downloadModel);
+
+            for (DownloadListener listener : listenerList) {
+                listener.onStart(downloadModel);
+            }
+        }
+
+        @Override
+        public void onLoading(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.LOADING;
+            }
+            //大于1M，再保存，不然容易内存溢出
+            dao.insertOrReplace(downloadModel);
+
+
+            for (DownloadListener listener : listenerList) {
+                listener.onLoading(downloadModel);
+            }
+        }
+
+        @Override
+        public void onStop(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.STOP;
+                DownloadRequest request = relationMap.get(downloadModel);
+                if (loadingList.contains(request)) {
+                    loadingList.remove(request);
+                }
+            }
+            dao.insertOrReplace(downloadModel);
+
+            for (DownloadListener listener : listenerList) {
+                listener.onStop(downloadModel);
+            }
+
+            //开始下个任务
+            startTask();
+        }
+
+        @Override
+        public void onCancel(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.CANCEL;
+            }
+            dao.insertOrReplace(downloadModel);
+            //删除任务
+            removeTask(downloadModel);
+
+            for (DownloadListener listener : listenerList) {
+                listener.onCancel(downloadModel);
+            }
+            //开始下个任务
+            startTask();
+        }
+
+        @Override
+        public void onComplete(DownloadModel downloadModel) {
+            if (relationMap.containsKey(downloadModel)) {
+                relationMap.get(downloadModel).downloadType = DownloadType.COMPLETE;
+            }
+            dao.insertOrReplace(downloadModel);
+            //删除任务
+            removeTask(downloadModel);
+
+            for (DownloadListener listener : listenerList) {
+                listener.onComplete(downloadModel);
+            }
+            //开始下个任务
+            startTask();
+        }
+
+        @Override
+        public void addListener(DownloadListener listener) {
+            listenerList.add(listener);
+        }
+
+        @Override
+        public void removeListener(DownloadListener listener) {
+            if (listenerList.contains(listener))
+                listenerList.remove(listener);
+        }
+
     };
 
     public abstract void init(Context context);
@@ -176,17 +277,21 @@ public enum DownloadManage {
 
     public abstract void startTask();
 
-    public abstract void startTask(TaskModel taskModel);
+    public abstract void startTask(DownloadModel downloadModel);
 
-    public abstract void pauseTask(TaskModel  taskModel);
+    public abstract void pauseTask(DownloadModel downloadModel);
 
-    public abstract void removeTask(TaskModel  taskModel);
+    public abstract void removeTask(DownloadModel downloadModel);
 
-    public abstract void cancelTask(TaskModel  taskModel);
+    public abstract void cancelTask(DownloadModel downloadModel);
 
-    public abstract List<TaskModel> getList();
+    public abstract List<DownloadRequest> getList();
 
-    public abstract List<TaskModel> getLoadingList();
+    public abstract List<DownloadModel> getLoadingList();
+
+    public abstract void addListener(DownloadListener listener);
+
+    public abstract void removeListener(DownloadListener listener);
 
     public static final String TAG = "DownloadManage";
 

@@ -1,4 +1,4 @@
-package com.lucky.cat.updown;
+package com.lucky.cat.client;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

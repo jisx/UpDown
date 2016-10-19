@@ -3,4 +3,31 @@
     <color name="colorPrimary">#3F51B5</color>
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
+
+
+    <!--白色-->
+    <color name="white">#FFFFFF</color>
+    <!--黑色-->
+    <color name="black">#000000</color>
+    <!--灰色字体颜色-->
+    <color name="gray_text">#999999</color>
+    <!-- 灰色标题 -->
+    <color name="gray_title">#666666</color>
+    <!--提示文字字体颜色-->
+    <color name="gray_light_text">#666666</color>
+    <!--浅黑色字体颜色-->
+    <color name="black_light_text">#1a1a1a</color>
+    <!--灰色的背景颜色-->
+    <color name="gray_background">#F5F5F5</color>
+    <!--灰色分割线-->
+    <color name="gray_line">#dddddd</color>
+    <!--绿色进度条-->
+    <color name="green_progress">#4BB736</color>
+    <!--蓝色进度条-->
+    <color name="blue_progress">#029AEE</color>
+
+    <!--蓝色字体-->
+    <color name="blue_text">#029AEE</color>
+    <!--灰色背景-->
+    <color name="gray_bg">#FCFCFC</color>
 </resources>

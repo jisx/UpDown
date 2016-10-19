@@ -1,4 +1,4 @@
-package com.lucky.cat.updown;
+package com.lucky.cat.client;
 
 import org.junit.Test;
 
