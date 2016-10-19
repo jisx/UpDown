@@ -25,13 +25,13 @@ import java.util.Objects;
  * Created by jisx on 2016/10/18.
  */
 
-public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
+public class DownloadAdapter extends BaseAdapter {
 
     Context context;
 
-    private List<T> list;
+    private List<DownloadRequest> list;
 
-    DownloadAdapter(Context context,List<T> list){
+    DownloadAdapter(Context context,List<DownloadRequest> list){
         this.context = context;
         this.list = list;
     }
@@ -75,19 +75,19 @@ public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
             convertView = View.inflate(context, R.layout.item_downloading, null);
             holder = new ViewHolder(convertView);
             convertView.setTag(holder);
-
-            DownloadManage.INSTANCE.addListener(holder);
         } else {
             holder = (ViewHolder) convertView.getTag();
         }
 
-        T model = list.get(position);
+        DownloadRequest model = list.get(position);
         holder.fileName.setText(model.getModel().getFileName());
-        holder.setModel(model);
+
 
         holder.completeSize.setText(setCompleteSize(model.getModel().getCompleteSize()));
         holder.progress.setProgress((int) (model.getModel().getCompleteSize() / (model.getModel().getFileSize() * 1.0) * 100));
         holder.checkbox.setVisibility(View.INVISIBLE);
+
+        DownloadManage.INSTANCE.addListener(model,new DownloadListen(holder,model.getModel()));
 
         switch (model.downloadType){
             case PREPARE:
@@ -106,14 +106,19 @@ public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.pauseTask(list.get(position).getModel());
+                        DownloadManage.INSTANCE.startTask(list.get(position).getModel());
                     }
                 });
             break;
             case LOADING:
                 holder.statusIcon.setImageResource(R.drawable.icon_downloading);
                 holder.operation.setImageResource(R.drawable.icon_stop);
-                holder.operation.setOnClickListener(null);
+                holder.operation.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        DownloadManage.INSTANCE.pauseTask(list.get(position).getModel());
+                    }
+                });
             break;
             case STOP:
                 holder.statusIcon.setImageResource(R.drawable.icon_status_stop);
@@ -142,41 +147,15 @@ public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
         }
     }
 
-    class ViewHolder implements DownloadListener{
+    class DownloadListen implements DownloadListener{
 
-        ImageView statusIcon;
+        DownloadModel model;
 
-        TextView fileName;
+        ViewHolder holder;
 
-        TextView completeSize;
-
-        TextView status;
-
-        ProgressBar progress;
-
-        ImageView operation;
-
-        CheckBox checkbox;
-
-        T model;
-
-        ViewHolder(View view) {
-            statusIcon = (ImageView) view.findViewById(R.id.status_icon);
-            fileName = (TextView) view.findViewById(R.id.file_name);
-            completeSize = (TextView) view.findViewById(R.id.complete_size);
-            status = (TextView) view.findViewById(R.id.status);
-            progress = (ProgressBar) view.findViewById(R.id.progress);
-            operation = (ImageView) view.findViewById(R.id.operation);
-            checkbox = (CheckBox) view.findViewById(R.id.checkbox);
+        DownloadListen(ViewHolder holder,DownloadModel model){
             this.model = model;
-        }
-
-        public T getModel() {
-            return model;
-        }
-
-        public void setModel(T model) {
-            this.model = model;
+            this.holder = holder;
         }
 
         @Override
@@ -191,12 +170,20 @@ public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
 
         @Override
         public void onLoading(final DownloadModel downloadModel) {
-            if(model.getModel().equals(downloadModel)){
+            if(model.equals(downloadModel)){
                 ((AppCompatActivity)context).runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        completeSize.setText(setCompleteSize(downloadModel.getCompleteSize()));
-                        progress.setProgress((int) (downloadModel.getCompleteSize() / (downloadModel.getFileSize() * 1.0) * 100));
+                        holder.completeSize.setText(setCompleteSize(downloadModel.getCompleteSize()));
+                        holder.progress.setProgress((int) (downloadModel.getCompleteSize() / (downloadModel.getFileSize() * 1.0) * 100));
+                        holder.statusIcon.setImageResource(R.drawable.icon_downloading);
+                        holder.operation.setImageResource(R.drawable.icon_stop);
+                        holder.operation.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                DownloadManage.INSTANCE.pauseTask(model);
+                            }
+                        });
                     }
                 });
 
@@ -219,16 +206,45 @@ public class DownloadAdapter<T extends DownloadRequest> extends BaseAdapter {
         }
     }
 
-
-
     Handler handler = new Handler(){
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
+            switch (msg.what){
+                case 0:
+                    notifyDataSetChanged();
+                    break;
 
-            notifyDataSetChanged();
-
+            }
         }
     };
+
+    class ViewHolder{
+
+        ImageView statusIcon;
+
+        TextView fileName;
+
+        TextView completeSize;
+
+        TextView status;
+
+        ProgressBar progress;
+
+        ImageView operation;
+
+        CheckBox checkbox;
+
+        ViewHolder(View view) {
+            statusIcon = (ImageView) view.findViewById(R.id.status_icon);
+            fileName = (TextView) view.findViewById(R.id.file_name);
+            completeSize = (TextView) view.findViewById(R.id.complete_size);
+            status = (TextView) view.findViewById(R.id.status);
+            progress = (ProgressBar) view.findViewById(R.id.progress);
+            operation = (ImageView) view.findViewById(R.id.operation);
+            checkbox = (CheckBox) view.findViewById(R.id.checkbox);
+        }
+
+    }
 
 }

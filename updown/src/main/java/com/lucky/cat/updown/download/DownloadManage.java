@@ -33,7 +33,7 @@ public enum DownloadManage implements DownloadListener {
         // 存放model 和 request 键值对，便于检索
         public HashMap<DownloadModel, DownloadRequest> relationMap;
         //存放监听的
-        List<DownloadListener> listenerList;
+        public HashMap<DownloadModel, DownloadListener> listenerMap;
 
         @Override
         public void init(Context context) {
@@ -55,7 +55,7 @@ public enum DownloadManage implements DownloadListener {
             taskList = new ArrayList<>();
             loadingList = new ArrayList<>();
             relationMap = new HashMap<>();
-            listenerList = new ArrayList<>();
+            listenerMap = new HashMap<>();
 
         }
 
@@ -127,12 +127,11 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void removeTask(DownloadModel model) {
-            //先取消任务
             cancelTask(model);
 
             DownloadRequest request = relationMap.get(model);
 
-            if (taskList.contains(request)) {
+            if (request != null && taskList.contains(request)) {
                 taskList.remove(request);
                 relationMap.remove(model);
             }
@@ -174,8 +173,8 @@ public enum DownloadManage implements DownloadListener {
             dao.insertOrReplace(downloadModel);
 
 
-            for (DownloadListener listener : listenerList) {
-                listener.onPrepare(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onPrepare(downloadModel);
             }
         }
 
@@ -186,8 +185,8 @@ public enum DownloadManage implements DownloadListener {
             }
             dao.insertOrReplace(downloadModel);
 
-            for (DownloadListener listener : listenerList) {
-                listener.onStart(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onStart(downloadModel);
             }
         }
 
@@ -196,12 +195,12 @@ public enum DownloadManage implements DownloadListener {
             if (relationMap.containsKey(downloadModel)) {
                 relationMap.get(downloadModel).downloadType = DownloadType.LOADING;
             }
-            //大于1M，再保存，不然容易内存溢出
+            //
             dao.insertOrReplace(downloadModel);
 
 
-            for (DownloadListener listener : listenerList) {
-                listener.onLoading(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onLoading(downloadModel);
             }
         }
 
@@ -216,8 +215,8 @@ public enum DownloadManage implements DownloadListener {
             }
             dao.insertOrReplace(downloadModel);
 
-            for (DownloadListener listener : listenerList) {
-                listener.onStop(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onStop(downloadModel);
             }
 
             //开始下个任务
@@ -230,11 +229,9 @@ public enum DownloadManage implements DownloadListener {
                 relationMap.get(downloadModel).downloadType = DownloadType.CANCEL;
             }
             dao.insertOrReplace(downloadModel);
-            //删除任务
-            removeTask(downloadModel);
 
-            for (DownloadListener listener : listenerList) {
-                listener.onCancel(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onCancel(downloadModel);
             }
             //开始下个任务
             startTask();
@@ -249,22 +246,22 @@ public enum DownloadManage implements DownloadListener {
             //删除任务
             removeTask(downloadModel);
 
-            for (DownloadListener listener : listenerList) {
-                listener.onComplete(downloadModel);
+            if (listenerMap.containsKey(downloadModel)) {
+                listenerMap.get(downloadModel).onComplete(downloadModel);
             }
             //开始下个任务
             startTask();
         }
 
         @Override
-        public void addListener(DownloadListener listener) {
-            listenerList.add(listener);
+        public void addListener(DownloadRequest request, DownloadListener listener) {
+            listenerMap.put(request.getModel(), listener);
         }
 
         @Override
-        public void removeListener(DownloadListener listener) {
-            if (listenerList.contains(listener))
-                listenerList.remove(listener);
+        public void removeListener(DownloadRequest request, DownloadListener listener) {
+            if (listenerMap.containsKey(request.getModel()))
+                listenerMap.remove(request.getModel());
         }
 
     };
@@ -289,9 +286,9 @@ public enum DownloadManage implements DownloadListener {
 
     public abstract List<DownloadModel> getLoadingList();
 
-    public abstract void addListener(DownloadListener listener);
+    public abstract void addListener(DownloadRequest request, DownloadListener listener);
 
-    public abstract void removeListener(DownloadListener listener);
+    public abstract void removeListener(DownloadRequest request, DownloadListener listener);
 
     public static final String TAG = "DownloadManage";
 
