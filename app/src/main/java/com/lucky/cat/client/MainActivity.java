@@ -31,28 +31,28 @@ public class MainActivity extends AppCompatActivity {
                 "http://183.131.168.65/appdl.hicloud.com/dl/appdl/application/apk/71/71397497b2e24580825df5bba6223054/com.farlenkov.vrtps.1608140955.apk?sign=portal@portal1476784233458&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.farlenkov.vrtps.1608140955.apk",
                 "com.farlenkov.vrtps.1608140955.apk",
-                60269630L,
+                60267539L,
                 0L,
                 "", new Date()));
         DownloadManage.INSTANCE.addTask(new DownloadModel(
                 "http://183.131.168.61/appdl.hicloud.com/dl/appdl/application/apk/d7/d7f8d7708ab84e61816ace2e8b88d1aa/com.imangi.templerun2.1609291047.apk?sign=portal@portal1476784143313&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.imangi.templerun2.1609291047.apk",
                 "com.imangi.templerun2.1609291047.apk",
-                53576450L,
+                53575163L,
                 0L,
                 "", new Date()));
         DownloadManage.INSTANCE.addTask(new DownloadModel(
                 "http://183.131.168.63/appdl.hicloud.com/dl/appdl/application/apk/ab/ab88fbc789c441a994ae63d9e04142d8/com.kiloo.subwaysurf.1609281957.apk?sign=portal@portal1476784143312&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.kiloo.subwaysurf.1609281957.apk",
                 "com.kiloo.subwaysurf.1609281957.apk",
-                53082818,
+                53078541L,
                 0L,
                 "", new Date()));
         DownloadManage.INSTANCE.addTask(new DownloadModel(
                 "http://183.131.168.63/appdl.hicloud.com/dl/appdl/application/apk/5f/5f9af0b6e46b4468ba5eee23272722d5/com.happyelements.AndroidAnimal.1609281427.apk?sign=portal@portal1476865051023&source=portalsite&wsiphost=localhttp://183.131.168.63/appdl.hicloud.com/dl/appdl/application/apk/5f/5f9af0b6e46b4468ba5eee23272722d5/com.happyelements.AndroidAnimal.1609281427.apk?sign=portal@portal1476865051023&source=portalsite&wsiphost=localhttp://183.131.168.63/appdl.hicloud.com/dl/appdl/application/apk/5f/5f9af0b6e46b4468ba5eee23272722d5/com.happyelements.AndroidAnimal.1609281427.apk?sign=portal@portal1476865051023&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.happyelements.AndroidAnimal.1609281427.apk",
                 "com.happyelements.AndroidAnimal.1609281427.apk",
-                95252834L,
+                95248247L,
                 0L,
                 "", new Date()));
         DownloadManage.INSTANCE.addTask(new DownloadModel(
@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
                 "http://183.131.168.63/appdl.hicloud.com/dl/appdl/application/apk/22/222e55ed6719405d9c985d09d7990ce8/com.qiyi.video.1610131557.apk?sign=portal@portal1476865050853&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.qiyi.video.1610131557.apk",
                 "com.qiyi.video.1610131557.apk",
-                25141632L,
+                25139141L,
                 0L,
                 "", new Date()));
         DownloadManage.INSTANCE.addTask(new DownloadModel(
@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
                 "http://183.131.168.65/appdl.hicloud.com/dl/appdl/application/apk/25/25078bea152d408a9b39eea06b43f037/com.sina.weibo.1610181347.apk?sign=portal@portal1476865050851&source=portalsite&wsiphost=local",
                 Environment.getExternalStorageDirectory() + "/com.sina.weibo.1610181347.apk",
                 "com.sina.weibo.1610181347.apk",
-                56708059L,
+                56699946L,
                 0L,
                 "", new Date()));
 
