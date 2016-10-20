@@ -2,6 +2,7 @@ package com.lucky.cat.client;
 
 import android.app.Application;
 
+import com.lucky.cat.updown.download.Build;
 import com.lucky.cat.updown.download.DownloadManage;
 
 /**
@@ -14,6 +15,15 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        DownloadManage.INSTANCE.init(this);
+        Build build = Build.Build();
+        build.setFollowRecord(false);
+        build.setIsStartNext(true);
+        build.setIsStartNow(true);
+        build.setIsDebug(true);
+        build.setNumbersTask(5);
+        build.setUnder_wifi(true);
+        build.setResume_wifi_anto_down(true);
+
+        DownloadManage.INSTANCE.init(this,build);
     }
 }

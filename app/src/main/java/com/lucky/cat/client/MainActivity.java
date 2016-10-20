@@ -1,5 +1,6 @@
 package com.lucky.cat.client;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
@@ -92,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 "", new Date()));
 
         DownloadAdapter adapter = new DownloadAdapter(this, DownloadManage.INSTANCE.getList());
+
 
         listView.setAdapter(adapter);
 

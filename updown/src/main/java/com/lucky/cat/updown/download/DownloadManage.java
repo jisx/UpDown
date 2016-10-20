@@ -1,6 +1,10 @@
 package com.lucky.cat.updown.download;
 
 import android.content.Context;
+import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.WifiManager;
 import android.util.Log;
 
 import com.lucky.cat.updown.sql.DaoMaster;
@@ -9,6 +13,7 @@ import com.lucky.cat.updown.sql.DownloadModel;
 import com.lucky.cat.updown.sql.DownloadModelDao;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -21,6 +26,10 @@ public enum DownloadManage implements DownloadListener {
 
         private String DBName = "download-db";
 
+        private NetWorkChangeListener netListener;
+
+        Context context;
+
         DaoSession daoSession;
 
         DownloadModelDao dao;
@@ -32,21 +41,33 @@ public enum DownloadManage implements DownloadListener {
         public List<DownloadRequest> loadingList;
         // 存放model 和 request 键值对，便于检索
         public HashMap<DownloadModel, DownloadRequest> relationMap;
-        //存放监听的
+        //存放监听的，提供给UI的
         public HashMap<DownloadRequest, DownloadListener> listenerMap;
+        //保存wifi被断了时，正在下载的任务，做为恢复任务的依据
+        public List<DownloadRequest> stopDownList;
 
         @Override
         public void init(Context context) {
-            init(context, Build.defaultBuild);
+            init(context, Build.Build());
         }
 
         @Override
         public void init(Context context, Build build) {
-            if (build != null) {
-                new Throwable("DownloadManage has init");
+            if (this.build != null) {
+                writeLog("初始化，已经初始化了，不需重复实例化");
+                return;
             }
 
+            this.context = context;
             this.build = build;
+
+            if(build.isResume_wifi_anto_down()){
+                netListener = new NetWorkChangeListener();
+                IntentFilter filter=new IntentFilter();
+                filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+                context.registerReceiver(netListener, filter);
+            }
+
             //连接数据库
             DaoMaster.DevOpenHelper helper = new DaoMaster.DevOpenHelper(context, DBName, null);
             this.daoSession = new DaoMaster(helper.getWritableDatabase()).newSession();
@@ -54,27 +75,57 @@ public enum DownloadManage implements DownloadListener {
 
             taskList = new ArrayList<>();
             loadingList = new ArrayList<>();
+            stopDownList = new ArrayList<>();
+
             relationMap = new HashMap<>();
             listenerMap = new HashMap<>();
 
+            //数据库中取出上次下载的进度
+            if (Build.followRecord) {
+                writeLog("初始化，即将添加了" + dao.loadAll().size() + "条任务");
+
+                for (DownloadModel model : dao.queryBuilder().orderAsc(DownloadModelDao.Properties.CreateTime).list()) {
+                    addTask(model);
+                }
+            } else {
+                writeLog("初始化，删除了所有数据库记录");
+                dao.deleteAll();
+            }
         }
 
         @Override
         public void addTask(DownloadModel model) {
+
             if (build == null) {
-                new Throwable("DownloadManage not init");
+                writeLog("还未实例化，请在application中调用init()方法");
+                return;
+            }
+            //初始化部分数据
+            if (model.getCreateTime() == null) {
+                model.setCreateTime(new Date());
             }
 
             if (!exist(model)) {
                 relationMap.put(model, new OkHttpRequest(model, this));
                 taskList.add(relationMap.get(model));
+                dao.insertOrReplace(model);
+            } else {
+                writeLog("该任务：" + model.getFileName() + "已经添加过了，不需要重复添加");
             }
 
             //添加一条任务就开始执行下载
-            if (build.isStartNow) {
+            if (build.isStartNow && loadingList.isEmpty()) {
                 startTask();
             }
 
+        }
+
+        @Override
+        public void addTask(List<DownloadModel> modelList) {
+            writeLog("批量导入下载任务共计" + modelList.size() + "条");
+            for (DownloadModel model : modelList) {
+                addTask(model);
+            }
         }
 
         private boolean exist(DownloadModel model) {
@@ -83,6 +134,13 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void startTask() {
+            //不为空说明 之前是因为wifi网络关闭导致的任务暂停,则需要重启任务
+            if(!stopDownList.isEmpty()){
+                for (DownloadRequest request:stopDownList){
+                    startTask(request.getModel());
+                }
+                stopDownList.clear();
+            }
 
             if (loadingList.isEmpty()) {
                 if (!taskList.isEmpty()) {
@@ -92,6 +150,8 @@ public enum DownloadManage implements DownloadListener {
                             break;
                         }
                     }
+                } else {
+                    writeLog("状态为 PREPARE  的任务已经全部执行结束");
                 }
             }
 
@@ -99,23 +159,32 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void startTask(DownloadModel model) {
+            //wifi判断
+            if (Build.under_wifi) {
+                if (!isWifi(context)) {
+                    writeLog("不是wifi下，不能下载");
+                    return;
+                }
+            }
+
+
             DownloadRequest request = relationMap.get(model);
             if (request != null) {
                 if (loadingList.contains(request)) {
-                    Log.d(TAG, "该任务已经开始了");
+                    writeLog("任务:" + model.getFileName() + "已经在下载了");
                     return;
                 } else {
                     if (loadingList.size() < build.numbersTask) {
                         loadingList.add(request);
                         request.start();
                     } else {
-                        Log.d(TAG, "最多" + build.numbersTask + "条下载任务");
+                        writeLog("无法启动任务：" + model.getFileName() + ",最多同时进行" + build.numbersTask + "条下载任务");
                     }
 
                 }
 
             } else {
-                Log.d(TAG, "任务不存在");
+                writeLog("任务:" + model.getFileName() + "不存在");
             }
 
             request = null;
@@ -127,9 +196,21 @@ public enum DownloadManage implements DownloadListener {
             if (loadingList.contains(request)) {
                 loadingList.remove(request);
                 request.cancel();
+                writeLog("正在取消任务：" + model.getFileName());
+            } else {
+
+                writeLog("任务：" + request.getModel().getFileName() + "已经被取消过了");
             }
 
             request = null;
+        }
+
+        @Override
+        public void pauseTask(List<DownloadModel> modelList) {
+            writeLog("批量暂停任务，共计" + modelList.size() + "条任务");
+            for (DownloadModel model : modelList) {
+                pauseTask(model);
+            }
         }
 
         @Override
@@ -142,9 +223,19 @@ public enum DownloadManage implements DownloadListener {
             if (request != null && taskList.contains(request)) {
                 taskList.remove(request);
                 relationMap.remove(model);
+                writeLog("正在删除任务：" + model.getFileName());
             }
 
             request = null;
+        }
+
+        @Override
+        public void removeTask(List<DownloadModel> modelList) {
+
+            writeLog("批量删除任务，共计" + modelList.size() + "条任务");
+            for (DownloadModel model : modelList) {
+                removeTask(model);
+            }
         }
 
         @Override
@@ -163,12 +254,23 @@ public enum DownloadManage implements DownloadListener {
         }
 
         @Override
+        public void setBuild(Build build) {
+            this.build = build;
+        }
+
+        @Override
+        public Build getBuild() {
+            return this.build;
+        }
+
+        @Override
         public void onPrepare(DownloadRequest request) {
             if (taskList.contains(request)) {
                 request.downloadType = DownloadType.PREPARE;
             }
             dao.insertOrReplace(request.getModel());
 
+            writeLog("任务：" + request.getModel().getFileName() + "已经准备好下载了");
 
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onPrepare(request);
@@ -181,6 +283,8 @@ public enum DownloadManage implements DownloadListener {
                 request.downloadType = DownloadType.START;
             }
             dao.insertOrReplace(request.getModel());
+
+            writeLog("任务：" + request.getModel().getFileName() + "已经开始执行");
 
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onStart(request);
@@ -195,9 +299,16 @@ public enum DownloadManage implements DownloadListener {
             //
             dao.insertOrReplace(request.getModel());
 
-
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onLoading(request);
+            }
+
+            //wifi判断
+            if (Build.under_wifi) {
+                if (!isWifi(context)) {
+                    pauseTask(request.getModel());
+                    writeLog("下载中断，不是wifi环境下，不能下载");
+                }
             }
         }
 
@@ -210,14 +321,27 @@ public enum DownloadManage implements DownloadListener {
                     loadingList.remove(request);
                 }
             }
+
             dao.insertOrReplace(request.getModel());
+
+            writeLog("任务：" + request.getModel().getFileName() + "已经停止了");
 
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onStop(request);
             }
 
+            //wifi判断
+            if (Build.under_wifi) {
+                if (!isWifi(context)) {
+                    stopDownList.add(request);
+                    writeLog("下载中断，保存被中断的任务：" + request.getModel().getFileName());
+                    return;
+                }
+            }
+
             //开始下个任务
-            startTask();
+            if (Build.isStartNext)
+                startTask();
         }
 
         @Override
@@ -225,7 +349,10 @@ public enum DownloadManage implements DownloadListener {
             if (taskList.contains(request)) {
                 request.downloadType = DownloadType.CANCEL;
             }
+
             dao.insertOrReplace(request.getModel());
+
+            writeLog("任务：" + request.getModel().getFileName() + "正在执行取消");
 
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onCancel(request);
@@ -241,11 +368,14 @@ public enum DownloadManage implements DownloadListener {
             //删除任务
             removeTask(request.getModel());
 
+            writeLog("任务：" + request.getModel().getFileName() + "下载完成");
+
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onComplete(request);
             }
             //开始下个任务
-            startTask();
+            if (Build.isStartNext)
+                startTask();
         }
 
         @Override
@@ -259,13 +389,31 @@ public enum DownloadManage implements DownloadListener {
                 listenerMap.remove(request);
         }
 
+
+        private void writeLog(String msg) {
+            if (Build.isDebug)
+                Log.d(TAG, msg);
+        }
+
     };
 
+    /**
+     * 在APPlication中实例化
+     *
+     * @param context
+     */
     public abstract void init(Context context);
 
+    /**
+     * 在APPlication中实例化
+     *
+     * @param context
+     */
     public abstract void init(Context context, Build build);
 
     public abstract void addTask(DownloadModel model);
+
+    public abstract void addTask(List<DownloadModel> modelList);
 
     public abstract void startTask();
 
@@ -273,16 +421,36 @@ public enum DownloadManage implements DownloadListener {
 
     public abstract void pauseTask(DownloadModel downloadModel);
 
+    public abstract void pauseTask(List<DownloadModel> modelList);
+
     public abstract void removeTask(DownloadModel downloadModel);
+
+    public abstract void removeTask(List<DownloadModel> modelList);
 
     public abstract List<DownloadRequest> getList();
 
     public abstract List<DownloadModel> getLoadingList();
+
+    public abstract void setBuild(Build build);
+
+    public abstract Build getBuild();
 
     public abstract void addListener(DownloadRequest request, DownloadListener listener);
 
     public abstract void removeListener(DownloadRequest request, DownloadListener listener);
 
     public static final String TAG = "DownloadManage";
+
+
+    public boolean isWifi(Context mContext) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) mContext
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetInfo = connectivityManager.getActiveNetworkInfo();
+        if (activeNetInfo != null
+                && activeNetInfo.getType() == ConnectivityManager.TYPE_WIFI) {
+            return true;
+        }
+        return false;
+    }
 
 }

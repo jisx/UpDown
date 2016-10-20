@@ -93,4 +93,19 @@ public class DownloadModel {
         this.createTime = createTime;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DownloadModel that = (DownloadModel) o;
+
+        return downLoadUrl != null ? downLoadUrl.equals(that.downLoadUrl) : that.downLoadUrl == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        return downLoadUrl != null ? downLoadUrl.hashCode() : 0;
+    }
 }

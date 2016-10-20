@@ -2,6 +2,7 @@ package com.lucky.cat.updown.download;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import com.lucky.cat.updown.sql.DownloadModel;
 
@@ -22,6 +23,8 @@ import okhttp3.Response;
  */
 
 public class OkHttpRequest extends DownloadRequest {
+
+    private String TAG = "OkHttpRequest";
 
     DownloadModel model;
 
@@ -51,17 +54,21 @@ public class OkHttpRequest extends DownloadRequest {
 
         call = client.newCall(request);
         listener.onPrepare(this);
+        writeLog("任务：" + model.getFileName() + "初始化完成");
     }
 
     @Override
     public void start() {
         if (call.isExecuted() || call.isCanceled()) {
             call = client.newCall(request);
+
+            writeLog("任务：" + model.getFileName() + "的请求已经被使用过，重新初始化请求");
         }
 
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
+                writeLog("任务：" + model.getFileName() + "请求失败，失败原因：" + e.toString());
                 listener.onStop(OkHttpRequest.this);
             }
 
@@ -70,8 +77,8 @@ public class OkHttpRequest extends DownloadRequest {
                 try {
                     saveToFile(response.body().byteStream());
                 } catch (Throwable e) {
-                    e.printStackTrace();
                     listener.onStop(OkHttpRequest.this);
+                    writeLog("任务：" + model.getFileName() + "的请求被暂停，或取消" + e.toString());
                 }
             }
         });
@@ -97,11 +104,8 @@ public class OkHttpRequest extends DownloadRequest {
         while ((len = bis.read(buffer)) != -1) {
             length = length + len;
             file.write(buffer, 0, len);
-            if (length < model.getFileSize()) {
-                model.setCompleteSize(length);
-                listener.onLoading(this);
-            }
-
+            model.setCompleteSize(length);
+            listener.onLoading(this);
         }
         listener.onComplete(this);
         bis.close();
@@ -114,6 +118,8 @@ public class OkHttpRequest extends DownloadRequest {
         if (call.isExecuted()) {
             call.cancel();
             listener.onCancel(this);
+        } else {
+            writeLog("任务：" + model.getFileName() + "已经被取消");
         }
     }
 
@@ -138,4 +144,10 @@ public class OkHttpRequest extends DownloadRequest {
     public int hashCode() {
         return model != null ? model.hashCode() : 0;
     }
+
+    private void writeLog(String msg) {
+        if (DownloadManage.INSTANCE.getBuild().isDebug)
+            Log.d(TAG, msg);
+    }
+
 }
