@@ -28,6 +28,10 @@ public class Build {
      * 只能在wifi下 执行下载
      */
     public static boolean under_wifi = true;
+    /**
+     * 是否进行校验
+     */
+    public static Vali vali = Vali.NONE;
 
     /**
      * 恢复wifi 自动下载
@@ -100,6 +104,14 @@ public class Build {
 
     public boolean isResume_wifi_anto_down() {
         return resume_wifi_anto_down;
+    }
+
+    public Vali getVali() {
+        return vali;
+    }
+
+    public void setVali(Vali vali) {
+        Build.vali = vali;
     }
 
     public void setResume_wifi_anto_down(boolean resume_wifi_anto_down) {

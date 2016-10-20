@@ -9,9 +9,12 @@ import android.util.Log;
 
 import com.lucky.cat.updown.sql.DaoMaster;
 import com.lucky.cat.updown.sql.DaoSession;
+import com.lucky.cat.updown.sql.DownloadHistoryModel;
+import com.lucky.cat.updown.sql.DownloadHistoryModelDao;
 import com.lucky.cat.updown.sql.DownloadModel;
 import com.lucky.cat.updown.sql.DownloadModelDao;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -33,6 +36,7 @@ public enum DownloadManage implements DownloadListener {
         DaoSession daoSession;
 
         DownloadModelDao dao;
+        DownloadHistoryModelDao historyDao;
 
         public Build build;
         //保存所有的下载任务列表
@@ -61,9 +65,9 @@ public enum DownloadManage implements DownloadListener {
             this.context = context;
             this.build = build;
 
-            if(build.isResume_wifi_anto_down()){
+            if (build.isResume_wifi_anto_down()) {
                 netListener = new NetWorkChangeListener();
-                IntentFilter filter=new IntentFilter();
+                IntentFilter filter = new IntentFilter();
                 filter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
                 context.registerReceiver(netListener, filter);
             }
@@ -72,6 +76,7 @@ public enum DownloadManage implements DownloadListener {
             DaoMaster.DevOpenHelper helper = new DaoMaster.DevOpenHelper(context, DBName, null);
             this.daoSession = new DaoMaster(helper.getWritableDatabase()).newSession();
             this.dao = daoSession.getDownloadModelDao();
+            this.historyDao = daoSession.getDownloadHistoryModelDao();
 
             taskList = new ArrayList<>();
             loadingList = new ArrayList<>();
@@ -100,10 +105,9 @@ public enum DownloadManage implements DownloadListener {
                 writeLog("还未实例化，请在application中调用init()方法");
                 return;
             }
-            //初始化部分数据
-            if (model.getCreateTime() == null) {
-                model.setCreateTime(new Date());
-            }
+            //完善数据
+            perfectModel(model);
+
 
             if (!exist(model)) {
                 relationMap.put(model, new OkHttpRequest(model, this));
@@ -118,6 +122,16 @@ public enum DownloadManage implements DownloadListener {
                 startTask();
             }
 
+        }
+
+        private void perfectModel(DownloadModel model) {
+            if (model.getCreateTime() == null) {
+                model.setCreateTime(new Date());
+            }
+            String path = model.getSavePath();
+            if (model.getFileName() == null) {
+                model.setFileName(path.substring(path.lastIndexOf("/"), path.length() - 1));
+            }
         }
 
         @Override
@@ -135,8 +149,8 @@ public enum DownloadManage implements DownloadListener {
         @Override
         public void startTask() {
             //不为空说明 之前是因为wifi网络关闭导致的任务暂停,则需要重启任务
-            if(!stopDownList.isEmpty()){
-                for (DownloadRequest request:stopDownList){
+            if (!stopDownList.isEmpty()) {
+                for (DownloadRequest request : stopDownList) {
                     startTask(request.getModel());
                 }
                 stopDownList.clear();
@@ -223,7 +237,8 @@ public enum DownloadManage implements DownloadListener {
             if (request != null && taskList.contains(request)) {
                 taskList.remove(request);
                 relationMap.remove(model);
-                writeLog("正在删除任务：" + model.getFileName());
+                dao.delete(model);
+                writeLog("删除任务：" + model.getFileName());
             }
 
             request = null;
@@ -251,6 +266,11 @@ public enum DownloadManage implements DownloadListener {
                 list.add(request.getModel());
             }
             return list;
+        }
+
+        @Override
+        public List<DownloadHistoryModel> getHistoryList() {
+            return historyDao.loadAll();
         }
 
         @Override
@@ -365,8 +385,24 @@ public enum DownloadManage implements DownloadListener {
                 request.downloadType = DownloadType.COMPLETE;
             }
             dao.insertOrReplace(request.getModel());
+
+            if (!isVerify(request.getModel())) {
+                //验真不通过就重新下载
+                if (build.isStartNext()) {
+                    build.setIsStartNext(false);
+                    onStop(request);//走停止逻辑
+                    startTask(request.getModel());//再重启任务
+                    build.setIsStartNext(true);
+                }
+                return;
+            }
+
             //删除任务
             removeTask(request.getModel());
+            //保存到历史记录中
+            DownloadModel model = request.getModel();
+            historyDao.insert(new DownloadHistoryModel(null, model.getDownLoadUrl(), model.getSavePath(), model.getFileName(), model.getCompleteSize(), new Date()));
+            model = null;
 
             writeLog("任务：" + request.getModel().getFileName() + "下载完成");
 
@@ -376,6 +412,37 @@ public enum DownloadManage implements DownloadListener {
             //开始下个任务
             if (Build.isStartNext)
                 startTask();
+        }
+
+        private boolean isVerify(DownloadModel model) {
+
+            ValiDateFactory vali = new NoneVali();
+
+            switch (build.getVali()) {
+                case NONE:
+                    vali = new NoneVali();
+                    return true;
+                case FILESIZE:
+                    vali = new FileSizeVali();
+                    break;
+
+                case MD5:
+
+                    break;
+
+            }
+
+            if (!vali.Verify(model)) {
+                model.setCompleteSize(0L);
+                File file = new File(model.getSavePath());
+                if (file.exists()) {
+                    file.delete();
+                }
+                file = null;
+                return false;
+            }
+
+            return true;
         }
 
         @Override
@@ -430,6 +497,8 @@ public enum DownloadManage implements DownloadListener {
     public abstract List<DownloadRequest> getList();
 
     public abstract List<DownloadModel> getLoadingList();
+
+    public abstract List<DownloadHistoryModel> getHistoryList();
 
     public abstract void setBuild(Build build);
 

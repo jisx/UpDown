@@ -9,11 +9,10 @@ public class DownloadModel {
     private String downLoadUrl;
     /** Not-null value. */
     private String savePath;
-    /** Not-null value. */
     private String fileName;
-    private long fileSize;
+    private Long fileSize;
     private Long completeSize;
-    private String MD5;
+    private String validate;
     private java.util.Date createTime;
 
     public DownloadModel() {
@@ -23,13 +22,13 @@ public class DownloadModel {
         this.downLoadUrl = downLoadUrl;
     }
 
-    public DownloadModel(String downLoadUrl, String savePath, String fileName, long fileSize, Long completeSize, String MD5, java.util.Date createTime) {
+    public DownloadModel(String downLoadUrl, String savePath, String fileName, Long fileSize, Long completeSize, String validate, java.util.Date createTime) {
         this.downLoadUrl = downLoadUrl;
         this.savePath = savePath;
         this.fileName = fileName;
         this.fileSize = fileSize;
         this.completeSize = completeSize;
-        this.MD5 = MD5;
+        this.validate = validate;
         this.createTime = createTime;
     }
 
@@ -51,21 +50,19 @@ public class DownloadModel {
         this.savePath = savePath;
     }
 
-    /** Not-null value. */
     public String getFileName() {
         return fileName;
     }
 
-    /** Not-null value; ensure this value is available before it is saved to the database. */
     public void setFileName(String fileName) {
         this.fileName = fileName;
     }
 
-    public long getFileSize() {
+    public Long getFileSize() {
         return fileSize;
     }
 
-    public void setFileSize(long fileSize) {
+    public void setFileSize(Long fileSize) {
         this.fileSize = fileSize;
     }
 
@@ -77,12 +74,12 @@ public class DownloadModel {
         this.completeSize = completeSize;
     }
 
-    public String getMD5() {
-        return MD5;
+    public String getValidate() {
+        return validate;
     }
 
-    public void setMD5(String MD5) {
-        this.MD5 = MD5;
+    public void setValidate(String validate) {
+        this.validate = validate;
     }
 
     public java.util.Date getCreateTime() {

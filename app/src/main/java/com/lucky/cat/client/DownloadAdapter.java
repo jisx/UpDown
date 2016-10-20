@@ -203,19 +203,7 @@ public class DownloadAdapter extends BaseAdapter {
 
         @Override
         public void onStop(final DownloadRequest request) {
-            if (!holder.getRequest().equals(request)) {
-                return;
-            }
-
-            ((AppCompatActivity) context).runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    if (!holder.getRequest().equals(request)) {
-                        return;
-                    }
-                    setViewHolder(holder, holder.getRequest());
-                }
-            });
+            handler.sendEmptyMessage(0);
         }
 
         @Override

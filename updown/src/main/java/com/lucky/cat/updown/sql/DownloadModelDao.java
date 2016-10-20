@@ -26,9 +26,9 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
         public final static Property DownLoadUrl = new Property(0, String.class, "downLoadUrl", true, "DOWN_LOAD_URL");
         public final static Property SavePath = new Property(1, String.class, "savePath", false, "SAVE_PATH");
         public final static Property FileName = new Property(2, String.class, "fileName", false, "FILE_NAME");
-        public final static Property FileSize = new Property(3, long.class, "fileSize", false, "FILE_SIZE");
+        public final static Property FileSize = new Property(3, Long.class, "fileSize", false, "FILE_SIZE");
         public final static Property CompleteSize = new Property(4, Long.class, "completeSize", false, "COMPLETE_SIZE");
-        public final static Property MD5 = new Property(5, String.class, "MD5", false, "MD5");
+        public final static Property Validate = new Property(5, String.class, "validate", false, "VALIDATE");
         public final static Property CreateTime = new Property(6, java.util.Date.class, "createTime", false, "CREATE_TIME");
     };
 
@@ -47,10 +47,10 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
         db.execSQL("CREATE TABLE " + constraint + "\"DOWNLOAD_MODEL\" (" + //
                 "\"DOWN_LOAD_URL\" TEXT PRIMARY KEY NOT NULL ," + // 0: downLoadUrl
                 "\"SAVE_PATH\" TEXT NOT NULL ," + // 1: savePath
-                "\"FILE_NAME\" TEXT NOT NULL ," + // 2: fileName
-                "\"FILE_SIZE\" INTEGER NOT NULL ," + // 3: fileSize
+                "\"FILE_NAME\" TEXT," + // 2: fileName
+                "\"FILE_SIZE\" INTEGER," + // 3: fileSize
                 "\"COMPLETE_SIZE\" INTEGER," + // 4: completeSize
-                "\"MD5\" TEXT," + // 5: MD5
+                "\"VALIDATE\" TEXT," + // 5: validate
                 "\"CREATE_TIME\" INTEGER);"); // 6: createTime
     }
 
@@ -70,17 +70,25 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
             stmt.bindString(1, downLoadUrl);
         }
         stmt.bindString(2, entity.getSavePath());
-        stmt.bindString(3, entity.getFileName());
-        stmt.bindLong(4, entity.getFileSize());
+ 
+        String fileName = entity.getFileName();
+        if (fileName != null) {
+            stmt.bindString(3, fileName);
+        }
+ 
+        Long fileSize = entity.getFileSize();
+        if (fileSize != null) {
+            stmt.bindLong(4, fileSize);
+        }
  
         Long completeSize = entity.getCompleteSize();
         if (completeSize != null) {
             stmt.bindLong(5, completeSize);
         }
  
-        String MD5 = entity.getMD5();
-        if (MD5 != null) {
-            stmt.bindString(6, MD5);
+        String validate = entity.getValidate();
+        if (validate != null) {
+            stmt.bindString(6, validate);
         }
  
         java.util.Date createTime = entity.getCreateTime();
@@ -101,10 +109,10 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
         DownloadModel entity = new DownloadModel( //
             cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0), // downLoadUrl
             cursor.getString(offset + 1), // savePath
-            cursor.getString(offset + 2), // fileName
-            cursor.getLong(offset + 3), // fileSize
+            cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2), // fileName
+            cursor.isNull(offset + 3) ? null : cursor.getLong(offset + 3), // fileSize
             cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4), // completeSize
-            cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5), // MD5
+            cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5), // validate
             cursor.isNull(offset + 6) ? null : new java.util.Date(cursor.getLong(offset + 6)) // createTime
         );
         return entity;
@@ -115,10 +123,10 @@ public class DownloadModelDao extends AbstractDao<DownloadModel, String> {
     public void readEntity(Cursor cursor, DownloadModel entity, int offset) {
         entity.setDownLoadUrl(cursor.isNull(offset + 0) ? null : cursor.getString(offset + 0));
         entity.setSavePath(cursor.getString(offset + 1));
-        entity.setFileName(cursor.getString(offset + 2));
-        entity.setFileSize(cursor.getLong(offset + 3));
+        entity.setFileName(cursor.isNull(offset + 2) ? null : cursor.getString(offset + 2));
+        entity.setFileSize(cursor.isNull(offset + 3) ? null : cursor.getLong(offset + 3));
         entity.setCompleteSize(cursor.isNull(offset + 4) ? null : cursor.getLong(offset + 4));
-        entity.setMD5(cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5));
+        entity.setValidate(cursor.isNull(offset + 5) ? null : cursor.getString(offset + 5));
         entity.setCreateTime(cursor.isNull(offset + 6) ? null : new java.util.Date(cursor.getLong(offset + 6)));
      }
     
