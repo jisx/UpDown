@@ -7,31 +7,33 @@ public class Build {
     /**
      * 是否开启debug
      */
-    public static boolean isDebug = true;
+    private boolean isDebug = true;
     /**
      * 同时下载的任务条数
      */
-    public static int numbersTask = 1;
+    private int numbersTask = 1;
     /**
      * 任务添加时，是否立即开始
      */
-    public static boolean isStartNow = false;
+    private boolean isStartNow = false;
     /**
      * 任务下载完成，是否立即开始下载任务
      */
-    public static boolean isStartNext = true;
+    private boolean isStartNext = true;
     /**
      * 沿用上次下载记录
      */
-    public static boolean followRecord = true;
+    private boolean followRecord = true;
     /**
      * 只能在wifi下 执行下载
      */
-    public static boolean under_wifi = true;
+    private boolean under_wifi = true;
     /**
      * 是否进行校验
      */
-    public static Vali vali = Vali.NONE;
+    private Vali vali = Vali.NONE;
+
+    private boolean isShowMsg = true;
 
     /**
      * 恢复wifi 自动下载
@@ -47,19 +49,15 @@ public class Build {
      */
     public static boolean resume_wifi_anto_down = false;
 
-    private Build() {
-    }
-
-    public static Build Build() {
-        return new Build();
+    public Build() {
     }
 
     public boolean isDebug() {
         return isDebug;
     }
 
-    public void setIsDebug(boolean isDebug) {
-        Build.isDebug = isDebug;
+    public void setDebug(boolean debug) {
+        isDebug = debug;
     }
 
     public int getNumbersTask() {
@@ -67,23 +65,23 @@ public class Build {
     }
 
     public void setNumbersTask(int numbersTask) {
-        Build.numbersTask = numbersTask;
+        this.numbersTask = numbersTask;
     }
 
     public boolean isStartNow() {
         return isStartNow;
     }
 
-    public void setIsStartNow(boolean isStartNow) {
-        Build.isStartNow = isStartNow;
+    public void setStartNow(boolean startNow) {
+        isStartNow = startNow;
     }
 
     public boolean isStartNext() {
         return isStartNext;
     }
 
-    public void setIsStartNext(boolean isStartNext) {
-        Build.isStartNext = isStartNext;
+    public void setStartNext(boolean startNext) {
+        isStartNext = startNext;
     }
 
     public boolean isFollowRecord() {
@@ -91,7 +89,7 @@ public class Build {
     }
 
     public void setFollowRecord(boolean followRecord) {
-        Build.followRecord = followRecord;
+        this.followRecord = followRecord;
     }
 
     public boolean isUnder_wifi() {
@@ -99,11 +97,7 @@ public class Build {
     }
 
     public void setUnder_wifi(boolean under_wifi) {
-        Build.under_wifi = under_wifi;
-    }
-
-    public boolean isResume_wifi_anto_down() {
-        return resume_wifi_anto_down;
+        this.under_wifi = under_wifi;
     }
 
     public Vali getVali() {
@@ -111,10 +105,22 @@ public class Build {
     }
 
     public void setVali(Vali vali) {
-        Build.vali = vali;
+        this.vali = vali;
     }
 
-    public void setResume_wifi_anto_down(boolean resume_wifi_anto_down) {
+    public boolean isShowMsg() {
+        return isShowMsg;
+    }
+
+    public void setShowMsg(boolean showMsg) {
+        isShowMsg = showMsg;
+    }
+
+    public static boolean isResume_wifi_anto_down() {
+        return resume_wifi_anto_down;
+    }
+
+    public static void setResume_wifi_anto_down(boolean resume_wifi_anto_down) {
         Build.resume_wifi_anto_down = resume_wifi_anto_down;
     }
 }
