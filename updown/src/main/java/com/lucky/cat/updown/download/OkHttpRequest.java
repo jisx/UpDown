@@ -146,7 +146,7 @@ public class OkHttpRequest extends DownloadRequest {
     }
 
     private void writeLog(String msg) {
-        if (DownloadManage.INSTANCE.getBuild().isDebug)
+        if (DownloadManage.INSTANCE.getBuild().isDebug())
             Log.d(TAG, msg);
     }
 

@@ -6,6 +6,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.lucky.cat.updown.sql.DaoMaster;
 import com.lucky.cat.updown.sql.DaoSession;
@@ -52,7 +53,7 @@ public enum DownloadManage implements DownloadListener {
 
         @Override
         public void init(Context context) {
-            init(context, Build.Build());
+            init(context, new Build());
         }
 
         @Override
@@ -86,7 +87,7 @@ public enum DownloadManage implements DownloadListener {
             listenerMap = new HashMap<>();
 
             //数据库中取出上次下载的进度
-            if (Build.followRecord) {
+            if (build.isFollowRecord()) {
                 writeLog("初始化，即将添加了" + dao.loadAll().size() + "条任务");
 
                 for (DownloadModel model : dao.queryBuilder().orderAsc(DownloadModelDao.Properties.CreateTime).list()) {
@@ -114,11 +115,12 @@ public enum DownloadManage implements DownloadListener {
                 taskList.add(relationMap.get(model));
                 dao.insertOrReplace(model);
             } else {
+                showToast(model.getFileName() + "已经在下载列表中");
                 writeLog("该任务：" + model.getFileName() + "已经添加过了，不需要重复添加");
             }
 
             //添加一条任务就开始执行下载
-            if (build.isStartNow && loadingList.isEmpty()) {
+            if (build.isStartNow() && loadingList.isEmpty()) {
                 startTask();
             }
 
@@ -153,6 +155,7 @@ public enum DownloadManage implements DownloadListener {
                 for (DownloadRequest request : stopDownList) {
                     startTask(request.getModel());
                 }
+                showToast("正在恢复下载");
                 stopDownList.clear();
             }
 
@@ -174,8 +177,9 @@ public enum DownloadManage implements DownloadListener {
         @Override
         public void startTask(DownloadModel model) {
             //wifi判断
-            if (Build.under_wifi) {
+            if (build.isUnder_wifi()) {
                 if (!isWifi(context)) {
+                    showToast("当前不是wifi环境");
                     writeLog("不是wifi下，不能下载");
                     return;
                 }
@@ -186,13 +190,15 @@ public enum DownloadManage implements DownloadListener {
             if (request != null) {
                 if (loadingList.contains(request)) {
                     writeLog("任务:" + model.getFileName() + "已经在下载了");
+                    showToast(model.getFileName() + "正在下载中");
                     return;
                 } else {
-                    if (loadingList.size() < build.numbersTask) {
+                    if (loadingList.size() < build.getNumbersTask()) {
                         loadingList.add(request);
                         request.start();
                     } else {
-                        writeLog("无法启动任务：" + model.getFileName() + ",最多同时进行" + build.numbersTask + "条下载任务");
+                        showToast("最多同时进行" + build.getNumbersTask() + "条下载任务");
+                        writeLog("无法启动任务：" + model.getFileName() + ",最多同时进行" + build.getNumbersTask() + "条下载任务");
                     }
 
                 }
@@ -324,7 +330,7 @@ public enum DownloadManage implements DownloadListener {
             }
 
             //wifi判断
-            if (Build.under_wifi) {
+            if (build.isUnder_wifi()) {
                 if (!isWifi(context)) {
                     pauseTask(request.getModel());
                     writeLog("下载中断，不是wifi环境下，不能下载");
@@ -351,7 +357,7 @@ public enum DownloadManage implements DownloadListener {
             }
 
             //wifi判断
-            if (Build.under_wifi) {
+            if (build.isUnder_wifi()) {
                 if (!isWifi(context)) {
                     stopDownList.add(request);
                     writeLog("下载中断，保存被中断的任务：" + request.getModel().getFileName());
@@ -360,7 +366,7 @@ public enum DownloadManage implements DownloadListener {
             }
 
             //开始下个任务
-            if (Build.isStartNext)
+            if (build.isStartNext())
                 startTask();
         }
 
@@ -389,10 +395,10 @@ public enum DownloadManage implements DownloadListener {
             if (!isVerify(request.getModel())) {
                 //验真不通过就重新下载
                 if (build.isStartNext()) {
-                    build.setIsStartNext(false);
+                    build.setStartNext(false);
                     onStop(request);//走停止逻辑
                     startTask(request.getModel());//再重启任务
-                    build.setIsStartNext(true);
+                    build.setStartNext(true);
                 }
                 return;
             }
@@ -404,13 +410,14 @@ public enum DownloadManage implements DownloadListener {
             historyDao.insert(new DownloadHistoryModel(null, model.getDownLoadUrl(), model.getSavePath(), model.getFileName(), model.getCompleteSize(), new Date()));
             model = null;
 
+            showToast(request.getModel().getFileName() + "下载完成");
             writeLog("任务：" + request.getModel().getFileName() + "下载完成");
 
             if (listenerMap.containsKey(request)) {
                 listenerMap.get(request).onComplete(request);
             }
             //开始下个任务
-            if (Build.isStartNext)
+            if (build.isStartNext())
                 startTask();
         }
 
@@ -458,8 +465,12 @@ public enum DownloadManage implements DownloadListener {
 
 
         private void writeLog(String msg) {
-            if (Build.isDebug)
+            if (build.isDebug())
                 Log.d(TAG, msg);
+        }
+
+        private void showToast(String msg){
+            Toast.makeText(context,msg,Toast.LENGTH_SHORT).show();
         }
 
     };

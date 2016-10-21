@@ -16,15 +16,16 @@ public class MyApplication extends Application {
     public void onCreate() {
         super.onCreate();
 
-        Build build = Build.Build();
+        Build build = new Build();
         build.setFollowRecord(true);
-        build.setIsStartNext(true);
-        build.setIsStartNow(true);
-        build.setIsDebug(true);
+        build.setStartNext(true);
+        build.setStartNow(true);
+        build.setDebug(true);
         build.setNumbersTask(5);
         build.setUnder_wifi(true);
         build.setResume_wifi_anto_down(true);
-        build.setVali(Vali.NONE);
+        build.setVali(Vali.FILESIZE);
+        build.setShowMsg(true);
 
         DownloadManage.INSTANCE.init(this,build);
     }
