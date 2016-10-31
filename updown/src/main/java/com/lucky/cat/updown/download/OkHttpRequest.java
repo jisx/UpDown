@@ -32,8 +32,7 @@ public class OkHttpRequest extends DownloadRequest {
 
     OkHttpClient client;
 
-    Request request;
-
+    Request.Builder builder;
     Call call;
 
     public OkHttpRequest(DownloadModel model, DownloadListener listener) {
@@ -47,23 +46,27 @@ public class OkHttpRequest extends DownloadRequest {
     public void init() {
         //构建http请求
         client = new OkHttpClient();
-
-        request = new Request.Builder()
-                .url(model.getDownLoadUrl())
-                .build();
-
-        call = client.newCall(request);
         listener.onPrepare(this);
         writeLog("任务：" + model.getFileName() + "初始化完成");
     }
 
     @Override
     public void start() {
-        if (call.isExecuted() || call.isCanceled()) {
-            call = client.newCall(request);
-
-            writeLog("任务：" + model.getFileName() + "的请求已经被使用过，重新初始化请求");
+        //重新检查文件
+        File flie = new File(model.getSavePath());
+        if (flie.exists()) {
+            model.setCompleteSize(flie.length());
+        } else {
+            model.setCompleteSize(0L);
         }
+        flie = null;
+
+        builder = new Request.Builder()
+                .url(model.getDownLoadUrl())
+                .addHeader("RANGE", "bytes=" + model.getCompleteSize() + "-");
+
+        call = client.newCall(builder.build());
+
 
         call.enqueue(new Callback() {
             @Override
@@ -95,7 +98,6 @@ public class OkHttpRequest extends DownloadRequest {
             flie1.createNewFile();
         }
         file = new RandomAccessFile(flie1, "rwd");
-
         file.seek(model.getCompleteSize());
         bis = new BufferedInputStream(inputStream);
         byte[] buffer = new byte[1024 * 1024 * 5];

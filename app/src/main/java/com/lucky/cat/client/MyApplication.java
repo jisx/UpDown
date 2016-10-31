@@ -18,8 +18,8 @@ public class MyApplication extends Application {
 
         Build build = new Build();
         build.setFollowRecord(true);
-        build.setStartNext(true);
-        build.setStartNow(true);
+        build.setStartNext(false);
+        build.setStartNow(false);
         build.setDebug(true);
         build.setNumbersTask(5);
         build.setUnder_wifi(true);

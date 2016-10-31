@@ -190,7 +190,7 @@ public enum DownloadManage implements DownloadListener {
             if (request != null) {
                 if (loadingList.contains(request)) {
                     writeLog("任务:" + model.getFileName() + "已经在下载了");
-                    showToast(model.getFileName() + "正在下载中");
+//                    showToast(model.getFileName() + "正在下载中");
                     return;
                 } else {
                     if (loadingList.size() < build.getNumbersTask()) {

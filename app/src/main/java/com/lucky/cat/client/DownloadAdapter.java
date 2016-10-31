@@ -92,7 +92,7 @@ public class DownloadAdapter extends BaseAdapter {
         return convertView;
     }
 
-    private void setViewHolder(ViewHolder holder, final DownloadRequest request) {
+    private void setViewHolder(final ViewHolder holder, DownloadRequest request) {
         switch (request.downloadType) {
             case PREPARE:
                 holder.statusIcon.setImageResource(0);
@@ -100,7 +100,7 @@ public class DownloadAdapter extends BaseAdapter {
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(request.getModel());
+                        DownloadManage.INSTANCE.startTask(holder.getRequest().getModel());
                     }
                 });
                 break;
@@ -110,7 +110,7 @@ public class DownloadAdapter extends BaseAdapter {
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(request.getModel());
+                        DownloadManage.INSTANCE.startTask(holder.getRequest().getModel());
                     }
                 });
                 break;
@@ -120,17 +120,18 @@ public class DownloadAdapter extends BaseAdapter {
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.pauseTask(request.getModel());
+                        DownloadManage.INSTANCE.pauseTask(holder.getRequest().getModel());
                     }
                 });
                 break;
             case STOP:
+            case CANCEL:
                 holder.statusIcon.setImageResource(R.drawable.icon_status_stop);
                 holder.operation.setImageResource(R.drawable.icon_start);
                 holder.operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        DownloadManage.INSTANCE.startTask(request.getModel());
+                        DownloadManage.INSTANCE.startTask(holder.getRequest().getModel());
                     }
                 });
                 break;
